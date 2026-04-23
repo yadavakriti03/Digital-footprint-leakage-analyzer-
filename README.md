@@ -1,1 +1,1 @@
-# Digital-footprint-leakage-analyzer-
+Download the digital_footprint_analyzer.html file and open it in any web browser like Chrome or Edge — no installation required. Once opened, paste any social media post or text into the input box and click the "Analyze for OPSEC Risks" button. The tool will instantly give you a risk score from 0 to 100, show you exactly which keywords triggered the alert, and provide recommendations on what to remove before posting. You can also use the three example buttons — High Risk, Medium Risk, and Safe Post — to quickly see how the tool works.
