@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Footprint Leakage Analyzer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0a0f1e; color: #e0e6f0; min-height: 100vh; }
+
+  header {
+    background: #0d1526;
+    border-bottom: 2px solid #1e3a5f;
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header .logo { font-size: 22px; font-weight: 700; color: #4fc3f7; letter-spacing: 1px; }
+  header .sub { font-size: 12px; color: #7a9bbf; margin-top: 2px; }
+  header .badge {
+    margin-left: auto;
+    background: #1a3a5c;
+    color: #4fc3f7;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid #2a5a8c;
+  }
+
+  .container { max-width: 900px; margin: 40px auto; padding: 0 24px; }
+
+  .card {
+    background: #0d1526;
+    border: 1px solid #1e3a5f;
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .card h2 { font-size: 15px; color: #4fc3f7; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+
+  textarea {
+    width: 100%;
+    height: 130px;
+    background: #060d1a;
+    border: 1px solid #1e3a5f;
+    border-radius: 8px;
+    color: #e0e6f0;
+    font-size: 14px;
+    padding: 14px;
+    resize: vertical;
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.6;
+  }
+  textarea:focus { outline: none; border-color: #4fc3f7; }
+  textarea::placeholder { color: #3a5a7c; }
+
+  .example-btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .ex-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #1e3a5f;
+    background: #0a1525;
+    color: #7a9bbf;
+    cursor: pointer;
+  }
+  .ex-btn:hover { border-color: #4fc3f7; color: #4fc3f7; }
+
+  .analyze-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    background: #1565c0;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: background 0.2s;
+  }
+  .analyze-btn:hover { background: #1976d2; }
+  .analyze-btn:active { background: #0d47a1; }
+
+  /* Risk meter */
+  .risk-section { display: none; }
+  .risk-bar-wrap { background: #060d1a; border-radius: 8px; height: 20px; overflow: hidden; margin: 10px 0 6px; border: 1px solid #1e3a5f; }
+  .risk-bar { height: 100%; border-radius: 8px; transition: width 0.8s ease; width: 0%; }
+  .risk-SAFE     { background: #2e7d32; }
+  .risk-LOW      { background: #558b2f; }
+  .risk-MEDIUM   { background: #f57f17; }
+  .risk-HIGH     { background: #bf360c; }
+  .risk-CRITICAL { background: #b71c1c; }
+
+  .score-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .score-num { font-size: 36px; font-weight: 700; }
+  .score-label { font-size: 13px; font-weight: 600; padding: 4px 14px; border-radius: 20px; }
+  .label-SAFE     { background: #1b5e20; color: #a5d6a7; }
+  .label-LOW      { background: #1b5e20; color: #a5d6a7; }
+  .label-MEDIUM   { background: #e65100; color: #ffe0b2; }
+  .label-HIGH     { background: #bf360c; color: #ffccbc; }
+  .label-CRITICAL { background: #7f0000; color: #ff8a80; }
+
+  /* Findings */
+  .findings-grid { display: flex; flex-direction: column; gap: 10px; }
+  .finding {
+    background: #060d1a;
+    border: 1px solid #1e3a5f;
+    border-left: 4px solid #1e3a5f;
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .finding.HIGH     { border-left-color: #ef6c00; }
+  .finding.CRITICAL { border-left-color: #c62828; }
+  .finding.MEDIUM   { border-left-color: #f9a825; }
+  .finding.LOW      { border-left-color: #2e7d32; }
+  .finding-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .finding-cat { font-size: 13px; font-weight: 600; color: #90caf9; }
+  .finding-sev { font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: 600; }
+  .sev-CRITICAL { background: #7f0000; color: #ff8a80; }
+  .sev-HIGH     { background: #bf360c; color: #ffccbc; }
+  .sev-MEDIUM   { background: #e65100; color: #ffe0b2; }
+  .sev-LOW      { background: #1b5e20; color: #a5d6a7; }
+  .finding-keywords { font-size: 12px; color: #7a9bbf; }
+  .kw-tag {
+    display: inline-block;
+    background: #0a1f35;
+    border: 1px solid #1e3a5f;
+    border-radius: 4px;
+    padding: 1px 7px;
+    margin: 2px 3px 2px 0;
+    font-size: 11px;
+    color: #4fc3f7;
+  }
+
+  /* Recommendations */
+  .rec-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .rec-list li {
+    background: #060d1a;
+    border: 1px solid #1e3a5f;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #b0d4f0;
+    padding-left: 36px;
+    position: relative;
+  }
+  .rec-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 12px;
+    color: #4fc3f7;
+    font-weight: 700;
+  }
+
+  .no-risk { text-align: center; padding: 20px; color: #2e7d32; font-size: 14px; }
+
+  footer { text-align: center; color: #2a4a6a; font-size: 12px; padding: 30px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">🛡 DIGITAL FOOTPRINT LEAKAGE ANALYZER</div>
+    <div class="sub">Defence-Centric OPSEC Risk Detection Using OSINT</div>
+  </div>
+  <div class="badge">CYBER SECURITY PROJECT</div>
+</header>
+
+<div class="container">
+
+  <!-- Input Card -->
+  <div class="card">
+    <h2>🔍 Analyze Post / Message</h2>
+    <textarea id="input-text" placeholder="Paste a social media post, message, or any public text here to check for OPSEC risks..."></textarea>
+
+    <div class="example-btns">
+      <span style="font-size:12px;color:#3a5a7c;align-self:center;">Try examples:</span>
+      <button class="ex-btn" onclick="loadExample(0)">⚠ High Risk Post</button>
+      <button class="ex-btn" onclick="loadExample(1)">🟡 Medium Risk Post</button>
+      <button class="ex-btn" onclick="loadExample(2)">✅ Safe Post</button>
+    </div>
+
+    <button class="analyze-btn" onclick="analyze()">🔎 ANALYZE FOR OPSEC RISKS</button>
+  </div>
+
+  <!-- Results -->
+  <div class="card risk-section" id="risk-section">
+    <h2>📊 Risk Assessment</h2>
+    <div class="score-row">
+      <div>
+        <div style="font-size:12px;color:#7a9bbf;margin-bottom:4px;">RISK SCORE</div>
+        <span class="score-num" id="score-num">0</span>
+        <span style="font-size:14px;color:#7a9bbf;">/100</span>
+      </div>
+      <span class="score-label" id="score-label">SAFE</span>
+    </div>
+    <div class="risk-bar-wrap">
+      <div class="risk-bar" id="risk-bar"></div>
+    </div>
+    <div id="risk-summary" style="font-size:13px;color:#7a9bbf;margin-top:4px;"></div>
+  </div>
+
+  <div class="card risk-section" id="findings-section" style="display:none;">
+    <h2>🚨 Findings</h2>
+    <div class="findings-grid" id="findings-grid"></div>
+  </div>
+
+  <div class="card risk-section" id="recs-section" style="display:none;">
+    <h2>✅ Recommendations</h2>
+    <ul class="rec-list" id="recs-list"></ul>
+  </div>
+
+</div>
+
+<footer>Digital Footprint Leakage Analyzer &nbsp;|&nbsp; Defence Cyber Security Project</footer>
+
+<script>
+const examples = [
+  "Just returned from patrol near LAC. Our battalion is moving to Siachen base next Monday at 0400 hrs. Commanding officer confirmed new missile system deployment. Coordinates 34.5N 72.3E. Stay safe everyone! 🇮🇳",
+  "Completed the reconnaissance mission today. Debrief with commanding officer tomorrow morning. Exercise going well so far.",
+  "Had amazing biryani at the canteen today! Weekend plans are looking good. Weather is lovely here in Pune. 😊"
+];
+
+function loadExample(i) {
+  document.getElementById('input-text').value = examples[i];
+}
+
+const KEYWORDS = {
+  "Location Leakage": {
+    words: ["base","fob","forward operating","camp","station","barracks","lac","loc","line of control","siachen","aksai","ladakh","kashmir","rajasthan","border","coordinates","latitude","longitude","sector","aor","deployed","deployment","posting"],
+    severity: "HIGH", points: 25
+  },
+  "Operational Details": {
+    words: ["mission","operation","exercise","patrol","sortie","convoy","movement","objective","target","strike","recon","reconnaissance","surveillance","debrief","briefing","intel","classified","restricted","secret","tactical","strategy","maneuver","ammunition","supply route","weapon system","missile","warhead"],
+    severity: "CRITICAL", points: 30
+  },
+  "Personnel Information": {
+    words: ["commanding officer","colonel","major","brigadier","general","captain","lieutenant","sergeant","jawan","sepoy","platoon","company","battalion","regiment","brigade","division","troop","casualties","reinforcement"],
+    severity: "HIGH", points: 20
+  },
+  "Timing Disclosure": {
+    words: ["0000","0100","0200","0300","0400","0500","attack at","move at","deploy at","launch at","next monday","next week","tomorrow morning","at dawn","tonight at","scheduled for"],
+    severity: "HIGH", points: 20
+  },
+  "Equipment / Capability": {
+    words: ["tank","artillery","howitzer","radar","drone","uav","helicopter","mig","sukhoi","tejas","submarine","missile system","night vision","jammer","weapon","ammunition"],
+    severity: "MEDIUM", points: 15
+  }
+};
+
+const RECS = {
+  "Location Leakage":       "Remove all location references, base names, and geographic identifiers before posting.",
+  "Operational Details":    "NEVER share mission, exercise, or operation details on any public platform.",
+  "Personnel Information":  "Avoid mentioning ranks, officer names, unit strength, or troop movements.",
+  "Timing Disclosure":      "Never post specific timings for military activities or movements.",
+  "Equipment / Capability": "Do not disclose weapons, systems, or equipment details publicly."
+};
+
+function analyze() {
+  const text = document.getElementById('input-text').value.trim();
+  if (!text) { alert('Please enter some text first!'); return; }
+
+  const lower = text.toLowerCase();
+  let totalScore = 0;
+  const findings = [];
+
+  // Check keyword categories
+  for (const [cat, data] of Object.entries(KEYWORDS)) {
+    const found = data.words.filter(w => lower.includes(w));
+    if (found.length > 0) {
+      findings.push({ cat, severity: data.severity, found, points: data.points });
+      totalScore += data.points * Math.min(found.length, 3);
+    }
+  }
+
+  // Check GPS pattern
+  const gps = text.match(/\d{1,3}\.\d+\s*[°]?\s*(N|S|E|W)/gi);
+  if (gps) {
+    findings.push({ cat: "GPS Coordinates Detected", severity: "CRITICAL", found: gps, points: 40 });
+    totalScore += 40;
+  }
+
+  totalScore = Math.min(totalScore, 100);
+
+  // Risk level
+  let level = "SAFE";
+  if (totalScore > 0 && totalScore < 30) level = "LOW";
+  else if (totalScore < 60) level = "MEDIUM";
+  else if (totalScore < 80) level = "HIGH";
+  else if (totalScore >= 80) level = "CRITICAL";
+  if (totalScore === 0) level = "SAFE";
+
+  const summaries = {
+    SAFE:     "No significant OPSEC risks detected. Content appears safe to share.",
+    LOW:      "Minor indicators found. Review before posting.",
+    MEDIUM:   "Moderate risk. Some sensitive information detected — edit before sharing.",
+    HIGH:     "High risk! Significant information leakage found. Do NOT post.",
+    CRITICAL: "CRITICAL RISK! Severe OPSEC violations detected. This post must NOT be shared."
+  };
+
+  // Show results
+  document.querySelectorAll('.risk-section').forEach(el => el.style.display = 'block');
+
+  // Score & bar
+  document.getElementById('score-num').textContent = totalScore;
+  const bar = document.getElementById('risk-bar');
+  bar.style.width = totalScore + '%';
+  bar.className = 'risk-bar risk-' + level;
+  const lbl = document.getElementById('score-label');
+  lbl.textContent = level;
+  lbl.className = 'score-label label-' + level;
+  document.getElementById('risk-summary').textContent = summaries[level];
+
+  // Findings
+  const fg = document.getElementById('findings-grid');
+  if (findings.length > 0) {
+    document.getElementById('findings-section').style.display = 'block';
+    fg.innerHTML = findings.map(f => `
+      <div class="finding ${f.severity}">
+        <div class="finding-top">
+          <span class="finding-cat">${f.cat}</span>
+          <span class="finding-sev sev-${f.severity}">${f.severity}</span>
+        </div>
+        <div class="finding-keywords">
+          Keywords found: ${f.found.slice(0,6).map(k => `<span class="kw-tag">${k}</span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  } else {
+    document.getElementById('findings-section').style.display = 'block';
+    fg.innerHTML = '<div class="no-risk">✅ No risky keywords or patterns found in this text.</div>';
+  }
+
+  // Recommendations
+  const recs = findings.map(f => RECS[f.cat]).filter(Boolean);
+  if (recs.length === 0) recs.push("Content looks clean. Always verify manually before posting on public platforms.");
+  document.getElementById('recs-section').style.display = 'block';
+  document.getElementById('recs-list').innerHTML = recs.map(r => `<li>${r}</li>`).join('');
+
+  // Scroll to results
+  document.getElementById('risk-section').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
